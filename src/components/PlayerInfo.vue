@@ -15,6 +15,7 @@ export default {
     class="player-info"
     v-bind:class="{ 
       active: player.turn,
+      specialMove: player.specialMove,
       winner: player.hasWon,
     }">
     <span class="player">
@@ -42,6 +43,11 @@ export default {
 
   &.active .player {
     border: 4px solid $highlight-color;
+    border-radius: 50%;
+  }
+
+  &.specialMove .player {
+    border: 4px dashed $highlight-color;
     border-radius: 50%;
   }
 

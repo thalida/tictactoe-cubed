@@ -28,7 +28,7 @@ export default {
       'x-winner': parentBoard.winner && parentBoard.winner.key === 'x',
       'o-winner': parentBoard.winner && parentBoard.winner.key === 'o',
     }"
-    v-on:click="onClick()">
+    v-on:click.stop="onClick()">
     <PlayerSymbol 
       v-if="move" 
       v-bind:symbol="move.player.key"

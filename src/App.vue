@@ -12,12 +12,13 @@ export default {
   data() {
     const boardSize = 3;
     const players = [
-      { index: 0, key: 'x', turn: true, hasWon: false },
-      { index: 1, key: 'o', turn: false, hasWon: false },
+      { index: 0, key: 'x', turn: true, hasWon: false, specialMove: false },
+      { index: 1, key: 'o', turn: false, hasWon: false, specialMove: false },
     ];
     const gameBoard = [];
     for (let i = 0; i < (boardSize * boardSize); i += 1) {
       gameBoard.push({
+        selectable: false,
         active: true,
         cells: new Array(9).fill(null),
         lastMove: null,
@@ -35,7 +36,7 @@ export default {
       isStart: true,
       gameOver: false,
       winner: null,
-      opponentPicksInnerBoard: false,
+      selectableBoards: false,
     };
   },
   computed: {
@@ -111,7 +112,10 @@ export default {
       let nextPlayer = this.currentPlayer.index + 1;
       nextPlayer = (nextPlayer >= this.totalPlayers) ? 0 : nextPlayer;
 
+      this.currentPlayer.specialMove = false;
       this.currentPlayer.turn = false;
+
+      this.players[nextPlayer].specialMove = false;
       this.players[nextPlayer].turn = true;
     },
     unsetPlayerTurns() {
@@ -135,17 +139,31 @@ export default {
         return board;
       });
     },
+    setInnerBoardsSelectable() {
+      this.selectableBoards = true;
+      this.gameBoard.map((b) => {
+        const board = b;
+        board.selectable = true;
+        return board;
+      });
+    },
+    setInnerBoardsUnselectable() {
+      this.selectableBoards = false;
+      this.gameBoard.map((b) => {
+        const board = b;
+        board.selectable = false;
+        return board;
+      });
+    },
     onInnerBoardClick(innerBoardIndex) {
-      if (!this.opponentPicksInnerBoard) {
+      if (!this.gameBoard[innerBoardIndex].selectable || this.gameBoard[innerBoardIndex].isFilled) {
         return;
       }
 
-      if (!this.gameBoard[innerBoardIndex].isFilled) {
-        this.opponentPicksInnerBoard = false;
-        this.setInnerBoardsInactive();
-        this.gameBoard[innerBoardIndex].active = true;
-        this.setNextPlayer();
-      }
+      this.setInnerBoardsUnselectable();
+      this.setInnerBoardsInactive();
+      this.gameBoard[innerBoardIndex].active = true;
+      this.setNextPlayer();
     },
     onCellClick(innerBoardIndex, cellIndex) {
       if (this.gameOver) {
@@ -192,12 +210,14 @@ export default {
       }
 
       if (this.gameBoard[cellIndex].isFilled) {
-        this.opponentPicksInnerBoard = true;
         this.setInnerBoardsInactive();
-      } else {
-        this.gameBoard[cellIndex].active = true;
-        this.setNextPlayer();
+        this.setInnerBoardsSelectable();
+        this.currentPlayer.specialMove = true;
+        return;
       }
+
+      this.gameBoard[cellIndex].active = true;
+      this.setNextPlayer();
     },
   },
 };
@@ -245,5 +265,9 @@ body {
 #app {
   display: flex;
   flex-direction: column;
+}
+
+.selectBoard {
+  color: white;
 }
 </style>
