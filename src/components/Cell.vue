@@ -77,10 +77,5 @@ export default {
       background: rgba(lighten($player-o_win-color, 3%), 0.5);
     }
   }
-
-  .player-symobl {
-    width: 50%;
-    height: 50%;
-  }
 }
 </style>
