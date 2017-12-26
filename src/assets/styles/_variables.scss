@@ -8,5 +8,8 @@ $player-symbol_width: 32px;
 
 $player-x_color: #FF6262;
 $player-o_color: #46FFCB;
+$player-x_win-color: scale-color($player-x_color, $green: 10%, $blue: 10%);
+$player-o_win-color: scale-color($player-o_color, $green: 10%, $blue: 10%);
 
 $highlight-color: #FFBA54;
+$win-color: #00FF66;

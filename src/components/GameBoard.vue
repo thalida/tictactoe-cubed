@@ -45,7 +45,8 @@ export default {
     width: 100%;
     height: 100%;
 
-    background: $gameboard_border-color;
+    background: $bg-color;
+    // background: $gameboard_border-color;
   }
 }
 </style>

@@ -13,7 +13,10 @@ export default {
 <template>
   <div 
     class="player-info"
-    v-bind:class="{ active: player.turn }">
+    v-bind:class="{ 
+      active: player.turn,
+      winner: player.hasWon,
+    }">
     <span class="player">
       <PlayerSymbol v-bind:symbol="player.key" />
     </span>
@@ -38,7 +41,12 @@ export default {
   }
 
   &.active .player {
-    border: 2px solid $highlight-color;
+    border: 4px solid $highlight-color;
+    border-radius: 50%;
+  }
+
+  &.winner .player {
+    border: 4px solid $win-color;
     border-radius: 50%;
   }
 }
