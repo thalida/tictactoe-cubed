@@ -167,7 +167,7 @@ export default {
 
       const numUsedCells = this.gameBoard[innerBoardIndex].numUsedCells;
       const totalCells = this.gameBoard[innerBoardIndex].cells.length;
-      this.gameBoard[innerBoardIndex].isFilled = numUsedCells === totalCells;
+      this.gameBoard[innerBoardIndex].isFilled = numUsedCells >= totalCells;
 
       if (this.gameBoard[innerBoardIndex].winner === null) {
         this.gameBoard[innerBoardIndex].winner = this.getWinner(
