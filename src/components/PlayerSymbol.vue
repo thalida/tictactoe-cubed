@@ -34,5 +34,10 @@ export default {
     &.player-o .path {
       fill: $player-o_color;
     }
+
+    &.is-game-piece {
+      height: 70%;
+      width: 70%;
+    }
 }
 </style>

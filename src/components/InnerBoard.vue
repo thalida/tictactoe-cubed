@@ -8,23 +8,8 @@ export default {
   components: {
     Cell,
   },
-  data() {
-    return {
-      forceClickable: false,
-    };
-  },
-  mounted() {
-    EventBus.$on('opponent-picks-inner-board', this.onOpponentPicksInnerBoard);
-  },
   methods: {
-    onOpponentPicksInnerBoard() {
-      this.forceClickable = true;
-    },
     onClick() {
-      if (!this.forceClickable) {
-        return;
-      }
-
       EventBus.$emit('innerboard-click', this.index);
     },
   },
@@ -36,7 +21,6 @@ export default {
     class="inner-board"
     v-bind:class="{ 
       active: board.active,
-      hover: forceClickable,
     }"
     v-on:click="onClick()">
     <Cell 
@@ -66,12 +50,10 @@ export default {
   box-shadow: 0px 0px 0px 0px transparent;
   transition: border 1000ms, box-shadow 1000ms;
 
-  &.hover:hover {
-    transition: border 300ms, box-shadow 300ms;
+  &:hover {
     cursor: pointer;
   }
 
-  &.hover:hover,
   &.active {
     border: 1px solid $highlight-color;
     box-shadow: 0px 0px 0px 3px $highlight-color;

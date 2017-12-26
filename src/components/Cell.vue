@@ -29,7 +29,10 @@ export default {
       'o-winner': parentBoard.winner && parentBoard.winner.key === 'o',
     }"
     v-on:click="onClick()">
-    <PlayerSymbol v-if="move" v-bind:symbol="move.player.key" />
+    <PlayerSymbol 
+      v-if="move" 
+      v-bind:symbol="move.player.key"
+      class="is-game-piece" />
   </div>
 </template>
 
@@ -73,6 +76,11 @@ export default {
     &.clickable:hover {
       background: rgba(lighten($player-o_win-color, 3%), 0.5);
     }
+  }
+
+  .player-symobl {
+    width: 50%;
+    height: 50%;
   }
 }
 </style>

@@ -69,7 +69,8 @@ export default {
       const board = [];
 
       for (let i = 0; i < this.gameBoard.length; i += 1) {
-        board.push({ player: this.gameBoard[i].winner });
+        const playerInfo = (this.gameBoard[i].winner) ? { player: this.gameBoard[i].winner } : null;
+        board.push(playerInfo);
       }
 
       return board;
@@ -95,7 +96,7 @@ export default {
         if (cells[i][i] === lastMove.player.key) {
           checks.diag += 1;
         }
-        if (cells[i][(4 - i)] === lastMove.player.key) {
+        if (cells[i][(this.boardSize - 1 - i)] === lastMove.player.key) {
           checks.rdiag += 1;
         }
       }
@@ -190,13 +191,11 @@ export default {
         return;
       }
 
-      this.gameBoard[cellIndex].active = true;
-
       if (this.gameBoard[cellIndex].isFilled) {
         this.opponentPicksInnerBoard = true;
         this.setInnerBoardsInactive();
-        EventBus.$emit('opponent-picks-inner-board');
       } else {
+        this.gameBoard[cellIndex].active = true;
         this.setNextPlayer();
       }
     },
