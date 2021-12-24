@@ -1,5 +1,4 @@
 # tictactoecubed
-
 > A 9x9 Tic-Tac-Toe Game
 
 ## Build Setup
