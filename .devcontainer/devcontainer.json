@@ -10,6 +10,7 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
+		5173,
 		3000
 	],
 
@@ -31,7 +32,9 @@
 				"rvest.vs-code-prettier-eslint",
 				"yoavbls.pretty-ts-errors",
 				"Gruntfuggly.todo-tree",
-				"tonybaloney.vscode-pets"
+				"tonybaloney.vscode-pets",
+				"Vue.volar",
+				"Vue.vscode-typescript-vue-plugin"
 			]
 		}
 	}

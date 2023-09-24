@@ -51,7 +51,13 @@ interface IError {
 
 const app: Express = express();
 const server = createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:5173",
+    ]
+  }
+});
 
 // DATABASE
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -69,9 +75,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('user disconnected');
   });
-});
 
-io.of("/games").on("connection", (socket) => {
   socket.on("game:create", (payload, callback) => {
     let data: IResData = null;
     let errors: IResErrors = null

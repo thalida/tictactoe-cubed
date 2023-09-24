@@ -26,7 +26,3 @@ coverage
 *.njsproj
 *.sln
 *.sw?
-
-# Application specific files
-db/
-dist/
