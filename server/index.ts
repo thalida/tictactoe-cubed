@@ -23,6 +23,8 @@ interface IGame {
   id: string;
   participants: (IPlayer | ISpectator)[];
   currentPlayer: 'X' | 'O';
+  lastMove: number | null;
+  moves: string[];
 }
 
 interface IParticipant {
@@ -60,6 +62,8 @@ const db = new LowSyncWithLodash(adapter, defaultData)
 
 // GAME RULES
 const MAX_PLAYERS = 2;
+const BOARD_SIZE = 9;
+const NUM_POSITIONS = BOARD_SIZE * BOARD_SIZE;
 
 io.on('connection', (socket) => {
   socket.on('disconnect', () => {
@@ -87,6 +91,8 @@ io.of("/games").on("connection", (socket) => {
       id: ulid(),
       participants: [ participant ],
       currentPlayer: 'X',
+      lastMove : null,
+      moves: [],
     }
 
     db.data.games.push(game);
@@ -246,6 +252,114 @@ io.of("/games").on("connection", (socket) => {
 
     socket.leave(game.id);
     socket.to(game.id).emit("game:participant:left", {
+      participant,
+    });
+
+    callback({
+      status: 204,
+      data,
+      errors,
+    });
+  });
+
+  socket.on("game:move", (payload, callback) => {
+    let data: IResData = null;
+    let errors: IResErrors = null;
+
+    const { gameId, participantId, move } = payload;
+    const validatedData = sanitize.object({
+      gameId: sanitize.value(gameId, "string"),
+      participantId: sanitize.value(participantId, "string"),
+      move: sanitize.value(move, "number"),
+    });
+
+    const game = db.chain.get('games').find({ id: validatedData.gameId }).value()
+    if (!game) {
+      errors = [{
+        code: "GAME_NOT_FOUND",
+        message: "Game not found",
+      }];
+      callback({
+        status: 404,
+        data,
+        errors,
+      });
+      return;
+    }
+
+    const participant = game.participants.find((participant) => participant.id === validatedData.participantId);
+    if (!participant) {
+      errors = [{
+        code: "PARTICIPANT_NOT_FOUND",
+        message: "Participant not found",
+      }];
+      callback({
+        status: 404,
+        data,
+        errors,
+      });
+      return;
+    }
+
+    if (participant.role !== "player") {
+      errors = [{
+        code: "NOT_A_PLAYER",
+        message: "Only players can make moves",
+      }];
+      callback({
+        status: 403,
+        data,
+        errors,
+      });
+      return;
+    }
+
+    if (participant.playerSymbol !== game.currentPlayer) {
+      errors = [{
+        code: "NOT_YOUR_TURN",
+        message: "It is not your turn",
+      }];
+      callback({
+        status: 403,
+        data,
+        errors,
+      });
+      return;
+    }
+
+    if (validatedData.move < 0 || validatedData.move >= NUM_POSITIONS) {
+      errors = [{
+        code: "INVALID_MOVE",
+        message: "Invalid move",
+      }];
+      callback({
+        status: 400,
+        data,
+        errors,
+      });
+      return;
+    }
+
+    if (typeof game.moves[move] !== "undefined") {
+      errors = [{
+        code: "INVALID_MOVE",
+        message: "Invalid move",
+      }];
+      callback({
+        status: 400,
+        data,
+        errors,
+      });
+      return;
+    }
+
+    game.moves[move] = participant.playerSymbol;
+    game.lastMove = move;
+    game.currentPlayer = participant.playerSymbol === "X" ? "O" : "X";
+    db.write()
+
+    socket.to(game.id).emit("game:move", {
+      game,
       participant,
     });
 
