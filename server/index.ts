@@ -8,24 +8,42 @@ import { fileURLToPath } from 'node:url'
 import { LowSync } from 'lowdb'
 import { JSONFileSync } from 'lowdb/node'
 import lodash from 'lodash'
+import sanitize from 'sanitize'
+import _ from 'lodash';
 
 class LowSyncWithLodash<T> extends LowSync<T> {
   chain: lodash.ExpChain<this['data']> = lodash.chain(this).get('data')
 }
 
-interface Data {
-  games: Game[];
+interface IData {
+  games: IGame[];
 }
 
-interface Game {
+interface IGame {
   id: string;
-  players: Player[];
-  state: string;
+  participants: (IPlayer | ISpectator)[];
+  currentPlayer: 'X' | 'O';
 }
 
-interface Player {
+interface IParticipant {
   id: string;
   name: string;
+}
+
+interface IPlayer extends IParticipant {
+  role: "player";
+  playerSymbol: 'X' | 'O';
+}
+
+interface ISpectator extends IParticipant {
+  role: "spectator";
+}
+
+type IResData = Record<string, any> | null;
+type IResErrors = IError[] | null;
+interface IError {
+  code: string;
+  message: string;
 }
 
 
@@ -37,8 +55,11 @@ const io = new Server(server);
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const DB_FILE = join(__dirname, 'db/data.json')
 const defaultData = { games: [] }
-const adapter = new JSONFileSync<Data>(DB_FILE)
+const adapter = new JSONFileSync<IData>(DB_FILE)
 const db = new LowSyncWithLodash(adapter, defaultData)
+
+// GAME RULES
+const MAX_PLAYERS = 2;
 
 io.on('connection', (socket) => {
   socket.on('disconnect', () => {
@@ -48,61 +69,195 @@ io.on('connection', (socket) => {
 
 io.of("/games").on("connection", (socket) => {
   socket.on("game:create", (payload, callback) => {
-    const game = {
+    let data: IResData = null;
+    let errors: IResErrors = null
+    const { participantName } = payload;
+    const validatedData = sanitize.object({
+      participantName: sanitize.value(participantName, "string"),
+    });
+
+    const participant: IPlayer = {
       id: ulid(),
-      players: [],
-      state: "waiting",
+      name: validatedData.participantName,
+      role: "player",
+      playerSymbol: "X",
     }
+
+    const game: IGame = {
+      id: ulid(),
+      participants: [ participant ],
+      currentPlayer: 'X',
+    }
+
     db.data.games.push(game);
     db.write()
 
     socket.join(game.id);
+
+    data = {
+      game,
+      participant,
+    }
+
     callback({
       status: 200,
-      data: {
-        game,
-      },
+      data,
+      errors,
     });
   });
 
   socket.on("game:join", (payload, callback) => {
-    const { gameId } = payload;
+    let data: IResData = null;
+    let errors: IResErrors = null;
 
-    const game = db.chain.get('games').find({ id: gameId }).value()
+    const { gameId, participantName, participantRole } = payload;
+    const validatedData = sanitize.object({
+      gameId: sanitize.value(gameId, "string"),
+      participantName: sanitize.value(participantName, "string"),
+      participantRole: sanitize.value(participantRole, "string"),
+    });
+
+    const game = db.chain.get('games').find({ id: validatedData.gameId }).value()
     if (!game) {
+      errors = [{
+        code: "GAME_NOT_FOUND",
+        message: "Game not found",
+      }];
       callback({
         status: 404,
-        message: "Game not found",
+        data,
+        errors,
       });
       return;
     }
 
+    const existingParticipant = game.participants.find((participant) => participant.name === validatedData.participantName);
+    if (existingParticipant) {
+      errors = [{
+        code: "PARTICIPANT_ALREADY_EXISTS",
+        message: "Participant already exists",
+      }];
+
+      socket.join(game.id);
+      socket.to(game.id).emit("game:participant:joined", {
+        participant: existingParticipant,
+      });
+
+      data = {
+        game,
+        participant: existingParticipant,
+      }
+
+      callback({
+        status: 200,
+        data,
+        errors,
+      });
+
+      return;
+    }
+
+    const numPlayers = game.participants.filter((participant) => participant.role === "player").length;
+    if (validatedData.participantRole === "player" && numPlayers >= MAX_PLAYERS) {
+      errors = [{
+        code: "GAME_IS_FULL",
+        message: "Game is full. Joining as spectator instead.",
+      }];
+      validatedData.participantRole = "spectator";
+    }
+
+    let participant: IPlayer | ISpectator;
+    if (validatedData.participantRole === "player") {
+      const hasXPlayer = game.participants.find((participant) => participant.role === "player" && participant.playerSymbol === "X");
+      participant = {
+        id: ulid(),
+        name: validatedData.participantName,
+        role: validatedData.participantRole,
+        playerSymbol: hasXPlayer ? "O" : "X",
+      }
+    } else {
+      participant = {
+        id: ulid(),
+        name: validatedData.participantName,
+        role: validatedData.participantRole,
+      }
+    }
+
+    game.participants.push(participant);
+    db.write()
+
     socket.join(game.id);
+    socket.to(game.id).emit("game:participant:joined", {
+      participant,
+    });
+
+    data = {
+      game,
+      participant,
+    }
+
     callback({
       status: 200,
-      data: {
-        game,
-      },
+      data,
+      errors,
     });
   });
+
+  socket.on("game:leave", (payload, callback) => {
+    let data: IResData = null;
+    let errors: IResErrors = null;
+
+    const { gameId, participantId } = payload;
+    const validatedData = sanitize.object({
+      gameId: sanitize.value(gameId, "string"),
+      participantId: sanitize.value(participantId, "string"),
+    });
+
+    const game = db.chain.get('games').find({ id: validatedData.gameId }).value()
+    if (!game) {
+      errors = [{
+        code: "GAME_NOT_FOUND",
+        message: "Game not found",
+      }];
+      callback({
+        status: 404,
+        data,
+        errors,
+      });
+      return;
+    }
+
+    const participant = game.participants.find((participant) => participant.id === validatedData.participantId);
+    if (!participant) {
+      errors = [{
+        code: "PARTICIPANT_NOT_FOUND",
+        message: "Participant not found",
+      }];
+      callback({
+        status: 404,
+        data,
+        errors,
+      });
+      return;
+    }
+
+    game.participants = game.participants.filter((participant) => participant.id !== validatedData.participantId);
+    db.write()
+
+    socket.leave(game.id);
+    socket.to(game.id).emit("game:participant:left", {
+      participant,
+    });
+
+    callback({
+      status: 204,
+      data,
+      errors,
+    });
+  });
+
 });
 
 server.listen(3000, () => {
   console.log('server running at http://localhost:3000');
 });
-
-
-// // Read data from JSON file, this will set db.data content
-// // If JSON file doesn't exist, defaultData is used instead
-// await db.read()
-
-// // Create and query items using plain JavaScript
-// db.data.posts.push('hello world')
-// const firstPost = db.data.posts[0]
-
-// // If you don't want to type db.data everytime, you can use destructuring assignment
-// const { posts } = db.data
-// posts.push('hello world')
-
-// // Finally write db.data content to file
-// await db.write()
