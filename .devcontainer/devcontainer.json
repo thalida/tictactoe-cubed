@@ -34,7 +34,9 @@
 				"Gruntfuggly.todo-tree",
 				"tonybaloney.vscode-pets",
 				"Vue.volar",
-				"Vue.vscode-typescript-vue-plugin"
+				"Vue.vscode-typescript-vue-plugin",
+				"bradlc.vscode-tailwindcss",
+				"esbenp.prettier-vscode"
 			]
 		}
 	}

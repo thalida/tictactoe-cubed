@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
-import { useSocketStore } from './stores/socket';
-import { computed } from 'vue';
+import { computed } from 'vue'
+import { useGamesStore } from './stores/game'
 
-const socketStore = useSocketStore();
-const isConnected = computed(() => socketStore.connected);
+const gamesStore = useGamesStore()
+const isConnected = computed(() => gamesStore.socketConnected)
 </script>
 
 <template>
@@ -14,5 +14,4 @@ const isConnected = computed(() => socketStore.connected);
   </div>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>
